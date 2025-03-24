@@ -29,11 +29,7 @@ IMAGE_FOLDER = "translator_images"
 
 def pdf_to_pics(infile: str) -> list:
     dpi = 500
-    pages = convert_from_path(infile, dpi)
-
-    for count, page in enumerate(pages):
-        file_path = os.path.join(IMAGE_FOLDER, f"page_{count}.jpg")
-        page.save(file_path, 'JPEG')
+    pages = convert_from_path(infile, dpi, output_folder=IMAGE_FOLDER, fmt="jpeg")
 
     return len(pages)
 
@@ -97,22 +93,19 @@ num_pics = pdf_to_pics(infile)
 
 output_file = "translated_text.txt"
 
-print("Clearing output file...")
-with open(output_file, 'w'):
-    pass
-
 print("Translating text...")
 current_pic = 0
-f = open(output_file, "a", encoding="utf-8")
-for entry in os.scandir(IMAGE_FOLDER):
-    current_pic += 1
-    print(f"Translating image {current_pic}/{num_pics}")
-    text_to_translate = pic_to_text(entry.path)
-    translated_text = translate_text(
-        text_to_translate, google_cloud_project_id, target_language_code, source_language_code
-    )
-    # Remove "Machine Translated by Google"
-    stripped_text = translated_text[30:]
-    f.write(textwrap.fill(stripped_text, width=100) + "\n\n")
 
-f.close()
+with open(output_file, "a+", encoding="utf-8") as f:
+    for entry in os.scandir(IMAGE_FOLDER):
+        current_pic += 1
+        print(f"Translating image {current_pic}/{num_pics}")
+        text_to_translate = pic_to_text(entry.path)
+        if not text_to_translate:
+            print("No text found, skipping...")
+            continue
+
+        translated_text = translate_text(
+            text_to_translate, google_cloud_project_id, target_language_code, source_language_code
+        )
+        f.write(textwrap.fill(translated_text, width=100) + "\n\n")
